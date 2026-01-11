@@ -1,0 +1,248 @@
+cmake_minimum_required(VERSION 3.14)
+project(runner LANGUAGES CXX)
+
+# Установка стандарта C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Define the application target
+add_executable(${BINARY_NAME} WIN32
+  "flutter_window.cpp"
+  "main.cpp"
+  "utils.cpp"
+  "win32_window.cpp"
+  "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
+  "Runner.rc"
+  "runner.exe.manifest"
+)
+
+# Apply the standard set of build settings
+apply_standard_settings(${BINARY_NAME})
+
+# =============================
+# ZXing Configuration
+# =============================
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/3dparty/zxing/ZXing.lib")
+    add_library(zxing STATIC IMPORTED)
+    set_target_properties(zxing PROPERTIES
+        IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/3dparty/zxing/ZXing.lib"
+    )
+    target_include_directories(${BINARY_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/3dparty/zxing"
+    )
+    target_link_libraries(${BINARY_NAME} PRIVATE zxing)
+    message(STATUS "ZXing library linked")
+else()
+    message(WARNING "ZXing library not found - QR code functionality will be limited")
+endif()
+# =============================
+# OpenCV Diagnostic
+# =============================
+message(STATUS "=== OpenCV Diagnostic ===")
+
+# Проверим существование основных путей
+set(OPENCV_PATHS_TO_CHECK
+    "C:/opencv"
+    "C:/opencv/build"
+    "C:/opencv/build/include"
+    "C:/opencv/build/include/opencv2"
+    "C:/opencv/build/x64"
+    "C:/opencv/build/x64/vc16"
+    "C:/opencv/build/x64/vc16/lib"
+    "C:/opencv/build/x64/vc16/bin"
+)
+
+foreach(PATH IN LISTS OPENCV_PATHS_TO_CHECK)
+    if(EXISTS "${PATH}")
+        message(STATUS "✓ ${PATH}")
+        # Покажем что в lib папке
+        if(PATH MATCHES "lib$")
+            file(GLOB LIB_FILES "${PATH}/*.lib")
+            message(STATUS "  Lib files: ${LIB_FILES}")
+        endif()
+        # Покажем что в bin папке  
+        if(PATH MATCHES "bin$")
+            file(GLOB DLL_FILES "${PATH}/*.dll")
+            message(STATUS "  DLL files: ${DLL_FILES}")
+        endif()
+    else()
+        message(STATUS "✗ ${PATH}")
+    endif()
+endforeach()
+message(STATUS "=== End Diagnostic ===")
+
+# =============================
+# OpenCV - Optional Dependency
+# =============================
+# =============================
+# OpenCV - Correct Configuration for Your Setup
+# =============================
+message(STATUS "=== Configuring OpenCV ===")
+
+set(OPENCV_ROOT "C:/opencv")
+set(OPENCV_BUILD "${OPENCV_ROOT}/build")
+
+if(EXISTS "${OPENCV_BUILD}")
+    message(STATUS "OpenCV build directory found: ${OPENCV_BUILD}")
+    
+    # Проверяем include
+    if(EXISTS "${OPENCV_BUILD}/include/opencv2")
+        set(OpenCV_INCLUDE_DIRS "${OPENCV_BUILD}/include")
+        message(STATUS "OpenCV includes: ${OpenCV_INCLUDE_DIRS}")
+    else()
+        message(WARNING "OpenCV headers not found!")
+    endif()
+    
+    # Ищем библиотеки в x64
+    set(VC_VERSIONS "vc16" "vc15" "vc14" "vc13")
+    set(OPENCV_LIB_FOUND FALSE)
+    
+    foreach(VC_VER IN LISTS VC_VERSIONS)
+        set(LIB_PATH "${OPENCV_BUILD}/x64/${VC_VER}/lib")
+        if(EXISTS "${LIB_PATH}")
+            message(STATUS "Checking lib path: ${LIB_PATH}")
+            
+            # Ищем библиотеки
+            file(GLOB LIB_FILES 
+                "${LIB_PATH}/opencv_world*.lib"
+                "${LIB_PATH}/opencv_core*.lib"
+            )
+            
+            if(LIB_FILES)
+                list(GET LIB_FILES 0 OpenCV_LIBS)  # Берем первую найденную
+                set(OPENCV_LIB_FOUND TRUE)
+                set(OpenCV_FOUND TRUE)
+                message(STATUS "Found OpenCV lib: ${OpenCV_LIBS}")
+                
+                # Находим соответствующую DLL
+                string(REPLACE "/lib" "/bin" BIN_PATH "${LIB_PATH}")
+                if(EXISTS "${BIN_PATH}")
+                    file(GLOB DLL_FILES 
+                        "${BIN_PATH}/opencv_world*.dll"
+                        "${BIN_PATH}/opencv_core*.dll"
+                    )
+                    if(DLL_FILES)
+                        list(GET DLL_FILES 0 OpenCV_DLL)
+                        message(STATUS "Found OpenCV DLL: ${OpenCV_DLL}")
+                    endif()
+                endif()
+                break()
+            endif()
+        endif()
+    endforeach()
+    
+    if(OpenCV_FOUND)
+        target_include_directories(${BINARY_NAME} PRIVATE ${OpenCV_INCLUDE_DIRS})
+        target_link_libraries(${BINARY_NAME} PRIVATE ${OpenCV_LIBS})
+        target_compile_definitions(${BINARY_NAME} PRIVATE "HAVE_OPENCV")
+        message(STATUS "OpenCV configured successfully!")
+        
+        # Копируем DLL
+        if(OpenCV_DLL)
+            add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${OpenCV_DLL}"
+                    "$<TARGET_FILE_DIR:${BINARY_NAME}>/"
+                COMMENT "Copying OpenCV DLL: ${OpenCV_DLL}"
+            )
+        endif()
+    else()
+        message(WARNING "OpenCV libraries not found - using fallback")
+        target_compile_definitions(${BINARY_NAME} PRIVATE "NO_OPENCV")
+    endif()
+    
+else()
+    message(WARNING "OpenCV build directory not found - using fallback")
+    target_compile_definitions(${BINARY_NAME} PRIVATE "NO_OPENCV")
+endif()
+
+# =============================
+# ONNX Runtime - Optional Dependency  
+# =============================
+# =============================
+# ONNX Runtime - Optional Dependency  
+# =============================
+find_path(ONNXRUNTIME_INCLUDE_DIR
+    NAMES onnxruntime_cxx_api.h
+    PATHS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/onnxruntime/include"
+    NO_DEFAULT_PATH
+)
+
+find_library(ONNXRUNTIME_LIBRARY
+    NAMES onnxruntime
+    PATHS "${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/onnxruntime/lib"
+    NO_DEFAULT_PATH
+)
+
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    message(STATUS "Found ONNX Runtime: ${ONNXRUNTIME_INCLUDE_DIR}")
+    
+    # Используем ${BINARY_NAME} - основную цель проекта
+    target_include_directories(${BINARY_NAME} PRIVATE ${ONNXRUNTIME_INCLUDE_DIR})
+    target_link_libraries(${BINARY_NAME} PRIVATE ${ONNXRUNTIME_LIBRARY})
+    
+    # Также добавляем определение для использования в коде
+    target_compile_definitions(${BINARY_NAME} PRIVATE "HAVE_ONNXRUNTIME")
+    
+    message(STATUS "ONNX Runtime configured successfully!")
+else()
+    message(WARNING "ONNX Runtime not found - AI functionality will be limited")
+    target_compile_definitions(${BINARY_NAME} PRIVATE "NO_ONNXRUNTIME")
+endif()# =============================
+# Core Dependencies
+# =============================
+
+# Flutter version info
+target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
+target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")
+target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MINOR=${FLUTTER_VERSION_MINOR}")
+target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_PATCH=${FLUTTER_VERSION_PATCH}")
+target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTTER_VERSION_BUILD}")
+
+# Windows configuration
+target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
+
+# Flutter dependencies
+target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
+
+# System libraries
+target_link_libraries(${BINARY_NAME} PRIVATE 
+    "dwmapi.lib"
+    gdiplus.lib
+    comctl32.lib
+    ole32.lib
+    shell32.lib
+    shlwapi.lib
+    advapi32.lib
+)
+
+# Include directories
+target_include_directories(${BINARY_NAME} PRIVATE 
+    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/3dparty/zxing"
+)
+
+# Required Flutter dependency
+add_dependencies(${BINARY_NAME} flutter_assemble)
+
+# =============================
+# Dependency Summary
+# =============================
+
+message(STATUS " ")
+message(STATUS "=== Dependency Summary ===")
+message(STATUS "ZXing: ${CMAKE_CURRENT_SOURCE_DIR}/3dparty/zxing/ZXing.lib")
+if(OpenCV_FOUND)
+    message(STATUS "OpenCV: FOUND")
+else()
+    message(STATUS "OpenCV: NOT FOUND (using fallback)")
+endif()
+if(ONNXRUNTIME_INCLUDE_DIR AND ONNXRUNTIME_LIBRARY)
+    message(STATUS "ONNX Runtime: FOUND")
+else()
+    message(STATUS "ONNX Runtime: NOT FOUND")
+endif()
+message(STATUS "==========================")
+message(STATUS " ")

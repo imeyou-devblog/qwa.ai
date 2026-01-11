@@ -1,0 +1,1 @@
+set PATH=%PATH%;C:\games\flutter_windows_3.35.3-stable\flutter\bin

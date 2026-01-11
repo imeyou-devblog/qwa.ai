@@ -1,0 +1,9 @@
+Before GDI+ StartupInput
+Before GDI+ StartupInput
+Before GDI+ Token
+Before GDI+ Startup call
+GDI+ Status: 0
+After GDI+ Startup
+After GDI+ Startup
+GDI+ initialized
+COM initialized: 0

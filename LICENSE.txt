@@ -1,0 +1,6 @@
+Copyright (c) 2025 Dimitrios Novotsidis
+All rights reserved.
+
+This software is the property of the author.
+Any copying, modification, or distribution without written permission is prohibited.
+To obtain a license, please contact imeyou.team@gmail.com

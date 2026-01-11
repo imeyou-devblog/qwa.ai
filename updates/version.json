@@ -1,0 +1,10 @@
+{
+  "latest_version": "1.0.0",
+  "release_date": "2025-01-10",
+  "download_url": "https://raw.githubusercontent.com/username/repo/main/updates/v1.0.2/app.zip",
+  "changelog_url": "https://raw.githubusercontent.com/username/repo/main/updates/v1.0.2/changelog.md",
+  "checksum_url": "https://raw.githubusercontent.com/username/repo/main/updates/v1.0.2/checksum.sha256",
+  "min_required_version": "1.0.0",
+  "critical": false,
+  "size_bytes": 52428800
+}
