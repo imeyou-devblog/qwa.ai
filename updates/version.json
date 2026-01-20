@@ -1,10 +1,10 @@
 {
   "latest_version": "1.0.0",
   "release_date": "2025-01-10",
-  "download_url": "https://raw.githubusercontent.com/username/repo/main/updates/v1.0.2/app.zip",
-  "changelog_url": "https://raw.githubusercontent.com/username/repo/main/updates/v1.0.2/changelog.md",
-  "checksum_url": "https://raw.githubusercontent.com/username/repo/main/updates/v1.0.2/checksum.sha256",
-  "min_required_version": "1.0.0",
+  "download_url": "https://raw.githubusercontent.com/imeyou-devblog/qwa.ai/main/updates/1.0.0/1.0.0.zip",
+  "changelog_url": "https://raw.githubusercontent.com/imeyou-devblog/qwa.ai/main/updates/1.0.0/changelog%201.0.0.txt",
+  "checksum_url": "https://raw.githubusercontent.com/imeyou-devblog/qwa.ai/main/updates/checksum.sha256",
+  "min_required_version": "0.0.1",
   "critical": false,
-  "size_bytes": 52428800
+  "size_bytes": 28557502
 }
